@@ -1,3 +1,5 @@
 .DS_Store
 .idea/
 venv/
+dist/
+octosql_py.egg-info/
