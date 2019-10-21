@@ -32,7 +32,8 @@ help:
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
 
 library:
-	./scripts/build.sh
+	go mod vendor
+	go run "github.com/karalabe/xgo" -buildmode=c-shared -go=1.12  -targets=darwin/amd64,linux/amd64,windows/amd64 -dest=libs "./src"
 	echo "Library compilation DONE"
 
 clean-build: ## remove build artifacts
