@@ -2,6 +2,10 @@ from ctypes import *
 import os
 import subprocess
 import platform
+import yaml
+
+from .utils import GoString
+from .connection import OctoSQLConnection
 
 __LIB__ = None
 
@@ -45,7 +49,10 @@ def __get_platform_binary_name__():
         normalized_ext = ""
         if normalized_system_name in __lib_exts__:
             normalized_ext = __lib_exts__[normalized_system_name]
-        return "src-" + normalized_system_name + normalized_version + normalized_arch_name + normalized_ext
+        rpath = "src-" + normalized_system_name + normalized_version + normalized_arch_name + normalized_ext
+
+        if os.path.exists(rpath):
+            return rpath
 
     return "local_build"
 
@@ -58,11 +65,13 @@ class OctoSQL:
             lib_to_load = os.path.abspath(libs_path + "/" + __get_platform_binary_name__())
 
             try:
+                #raise "FAIL"
                 __LIB__ = cdll.LoadLibrary(lib_to_load)
                 __LIB__.test()
             except:
                 try:
-                    build_cmd = 'cd ' + libs_path + ' && go build -o local_build -buildmode=c-shared ../src/lib.go'
+                    print('rebuild')
+                    build_cmd = 'mkdir -p ' + libs_path + ' && cd ' + libs_path + ' && go build -o local_build -buildmode=c-shared ../src/lib.go'
                     subprocess.check_call(build_cmd, shell=True, executable='/bin/bash')
                     lib_to_load = os.path.abspath(libs_path + "/local_build")
                     __LIB__ = cdll.LoadLibrary(lib_to_load)
@@ -88,6 +97,13 @@ class OctoSQL:
                     raise Exception("Failed to load binary library for octosql.py")
 
         self.lib = __LIB__
+        self.lib.octosql_init()
 
-    def lolxd(self):
-        self.lib.lolxd()
+    def connect(self, sources):
+        conf = {
+            "dataSources": list(map(lambda source: source.generateConfigObject(), sources))
+        }
+        textConf = yaml.dump(conf).encode()
+        config = GoString(textConf, len(textConf))
+        appID = self.lib.octosql_new_instance(config)
+        return OctoSQLConnection(self.lib, appID)
