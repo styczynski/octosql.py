@@ -1,0 +1,2 @@
+class OctoSQLStorage:
+    def
