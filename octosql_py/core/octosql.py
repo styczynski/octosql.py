@@ -59,12 +59,14 @@ class OctoSQL:
 
             try:
                 __LIB__ = cdll.LoadLibrary(lib_to_load)
+                __LIB__.test()
             except:
                 try:
                     build_cmd = 'cd ' + libs_path + ' && go build -o local_build -buildmode=c-shared ../src/lib.go'
                     subprocess.check_call(build_cmd, shell=True, executable='/bin/bash')
                     lib_to_load = os.path.abspath(libs_path + "/local_build")
                     __LIB__ = cdll.LoadLibrary(lib_to_load)
+                    __LIB__.test()
                 except:
 
                     go_ver_info = "There is no golang installed. Please install GO executable."

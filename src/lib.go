@@ -27,6 +27,9 @@ func main () {
 
 }
 
+//export test
+func test () {}
+
 //export lolxd
 func lolxd () {
 
