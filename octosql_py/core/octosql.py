@@ -68,7 +68,7 @@ class OctoSQL:
                 except:
 
                     go_ver_info = "There is no golang installed. Please install GO executable."
-                    go_version_check_command = "go versionx"
+                    go_version_check_command = "go version"
                     try:
                         subprocess.check_call(go_version_check_command, shell=True, executable='/bin/bash')
                         go_ver_info = ""
