@@ -127,7 +127,9 @@ static PyObject* get_record_set_obj_attr(PyObject *self, PyObject *args) {
         cap = (RecordObjectCapsule*) PyCapsule_GetPointer(pycap, "NATIVE_RECORD");
         const int appID = cap->appID;
         const int parseID = cap->parseID;
-        if (strcmp(ptr, "records") == 0) {
+        if (strcmp(ptr, "count") == 0) {
+            return PyLong_FromLong(octosql_get_records_count(appID, parseID));
+        } else if (strcmp(ptr, "records") == 0) {
             const int recordsCount = octosql_get_records_count(appID, parseID);
 
             PyObject *recordsList = PyList_New(recordsCount);
