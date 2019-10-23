@@ -10,7 +10,7 @@ import os
 
 base_path = os.path.dirname(os.path.realpath(__file__))
 libgooctosql_path = os.path.abspath(base_path + "/libs/libgooctosql")
-go_src_path = os.path.abspath(base_path + "/src/lib.go")
+go_src_path = os.path.abspath("./src/lib.go")
 
 class build(build_module.build):
   def run(self):
