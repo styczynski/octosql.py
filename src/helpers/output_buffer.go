@@ -4,6 +4,7 @@ import (
 	"github.com/cube2222/octosql"
 	"github.com/cube2222/octosql/execution"
 	"log"
+	"strings"
 	"sync"
 )
 
@@ -26,12 +27,13 @@ func (out *OctoSQLOutputBuffer) GetRecordFieldID(id int32, fieldName string) int
 
 	r := out.records[id].AsVariables()
 	i := 0
-	for a := range r {
-		if a.Name() == fieldName {
+	for a, _ := range r {
+		if strings.EqualFold(a.String(), fieldName) {
 			return int32(i)
 		}
 		i++
 	}
+	println("default exit")
 	return 0
 }
 
@@ -97,6 +99,19 @@ func (out *OctoSQLOutputBuffer) GetRecordFieldAsBool(id int32, fieldID int32) bo
 	}
 	log.Fatal("OctoSQLOutputBuffer: Invalid field type error")
 	return false
+}
+
+func (out *OctoSQLOutputBuffer) GetRecordFieldAsFloat(id int32, fieldID int32) float64 {
+	out.RLock()
+	defer out.RUnlock()
+
+	field := out.records[id].AsVariables()[out.getRecordFieldByID(id, fieldID).Name]
+	switch field := field.(type) {
+	case octosql.Float:
+		return field.AsFloat()
+	}
+	log.Fatal("OctoSQLOutputBuffer: Invalid field type error")
+	return 0.0
 }
 
 func (out *OctoSQLOutputBuffer) GetRecordFieldAsString(id int32, fieldID int32) string {

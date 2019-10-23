@@ -230,6 +230,11 @@ func octosql_get_record_field_as_bool(appID int32, parseID int32, recordID int32
 	return (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordFieldAsBool(recordID, fieldID)
 }
 
+//export octosql_get_record_field_as_float
+func octosql_get_record_field_as_float(appID int32, parseID int32, recordID int32, fieldID int32) float64 {
+	return (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordFieldAsFloat(recordID, fieldID)
+}
+
 //export octosql_get_record_field_as_string
 func octosql_get_record_field_as_string(appID int32, parseID int32, recordID int32, fieldID int32) *C.char {
 	res := (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordFieldAsString(recordID, fieldID)

@@ -22,11 +22,19 @@ void RecordObjectCapsule_destroy(PyObject *pycap) {
     free(cap);
 }
 
+static PyObject* get_query_record_field_value(int appID, int parseID, int recordID, int fieldID);
+
 typedef struct {
     PyObject_HEAD
     PyObject* pycap;
     /* Type-specific fields go here. */
 } RecordObject;
+
+typedef struct {
+    PyObject_HEAD
+    PyObject* pycap;
+    /* Type-specific fields go here. */
+} RecordSetObject;
 
 static PyObject* init(PyObject *self, PyObject *args) {
     const int res = octosql_init();
@@ -44,6 +52,130 @@ static PyObject* new_instance(PyObject *self, PyObject *args) {
     }
     const int id = octosql_new_instance(strToGo(yamlConfiguration));
     return PyLong_FromLong(id);
+}
+
+static PyObject* get_query_record_dict(int appID, int parseID, int recordID) {
+    PyObject *record = PyDict_New();
+    const int fieldsCount = octosql_get_record_fields_count(appID, parseID, recordID);
+    for (int i=0; i<fieldsCount; ++i) {
+        PyObject* fieldVal = get_query_record_field_value(appID, parseID, recordID, i);
+        if (fieldVal != NULL) {
+            char* fieldName = octosql_get_record_field_name(appID, parseID, recordID, i);
+            PyDict_SetItemString(record, fieldName, fieldVal);
+        }
+    }
+
+    return record;
+}
+
+static PyObject* create_record_native_wrapper(int appID, int parseID, int recordID) {
+    // dict is a borrowed reference.
+    PyObject* dict = PyModule_GetDict(module);
+    if (dict == nullptr) {
+    PyErr_Print();
+    std::cout << "Fails to get the dictionary.\n";
+    return NULL;
+    }
+
+    // Builds the name of a callable class
+    PyObject* python_class = PyDict_GetItemString(dict, "Record");
+    if (python_class == nullptr) {
+    PyErr_Print();
+    std::cout << "Fails to get the Python class.\n";
+    return NULL;
+    }
+
+    PyObject* object;
+    // Creates an instance of the class
+    if (PyCallable_Check(python_class)) {
+    object = PyObject_CallObject(python_class, nullptr);
+    } else {
+    std::cout << "Cannot instantiate the Python class" << std::endl;
+    return NULL;
+    }
+
+    RecordObjectCapsule* cap = (RecordObjectCapsule*) malloc(sizeof(RecordObjectCapsule));
+    cap->appID = appID;
+    cap->parseID = parseID;
+    cap->recordID = recordID;
+
+    PyObject* pycap = PyCapsule_New((void *)cap, "NATIVE_RECORD", RecordObjectCapsule_destroy);
+    ((RecordObject*) object)->pycap = pycap;
+
+    return object;
+}
+
+static PyObject* create_fields_list(int appID, int parseID, int recordID) {
+    const int fieldsCount = octosql_get_record_fields_count(appID, parseID, recordID);
+    PyObject *fieldsList = PyList_New(fieldsCount);
+    for (int i=0; i<fieldsCount; ++i) {
+        const char* fieldName = octosql_get_record_field_name(appID, parseID, recordID, i);
+        PyObject* object = PyUnicode_FromString(fieldName);
+        PyList_SetItem(fieldsList, i, object);
+    }
+    return fieldsList;
+}
+
+static PyObject* get_record_set_obj_attr(PyObject *self, PyObject *args) {
+    if(PyUnicode_Check(args)) {
+        Py_ssize_t size;
+        const char *ptr = PyUnicode_AsUTF8AndSize(args, &size);
+
+        PyObject* pycap = ((RecordObject*) self)->pycap;
+
+        RecordObjectCapsule *cap;
+        cap = (RecordObjectCapsule*) PyCapsule_GetPointer(pycap, "NATIVE_RECORD");
+        const int appID = cap->appID;
+        const int parseID = cap->parseID;
+        if (strcmp(ptr, "records") == 0) {
+            const int recordsCount = octosql_get_records_count(appID, parseID);
+
+            PyObject *recordsList = PyList_New(recordsCount);
+            for(int i=0;i<recordsCount;++i) {
+                PyList_SetItem(recordsList, i, create_record_native_wrapper(appID, parseID, i));
+            }
+            return recordsList;
+        } else if (strcmp(ptr, "fields") == 0) {
+            const int recordsCount = octosql_get_records_count(appID, parseID);
+            if (recordsCount > 0) {
+                return create_fields_list(appID, parseID, 0);
+            }
+            return PyList_New(0);
+        } else if (strcmp(ptr, "values") == 0) {
+            const int recordsCount = octosql_get_records_count(appID, parseID);
+            PyObject *recordsList = PyList_New(recordsCount);
+            for (int i=0; i<recordsCount; ++i) {
+                PyList_SetItem(recordsList, i, get_query_record_dict(appID, parseID, i));
+            }
+            return recordsList;
+        }
+
+        Py_RETURN_NONE;
+    }
+    return NULL;
+}
+
+static PyObject* get_record_obj_attr(PyObject *self, PyObject *args) {
+    if(PyUnicode_Check(args)) {
+        Py_ssize_t size;
+        const char *ptr = PyUnicode_AsUTF8AndSize(args, &size);
+
+        PyObject* pycap = ((RecordObject*) self)->pycap;
+
+        RecordObjectCapsule *cap;
+        cap = (RecordObjectCapsule*) PyCapsule_GetPointer(pycap, "NATIVE_RECORD");
+        const int appID = cap->appID;
+        const int parseID = cap->parseID;
+        const int recordID = cap->recordID;
+        if (strcmp(ptr, "fields") == 0) {
+            return create_fields_list(appID, parseID, recordID);
+        } else if(strcmp(ptr, "values") == 0) {
+            return get_query_record_dict(appID, parseID, recordID);
+        }
+
+        Py_RETURN_NONE;
+    }
+    return NULL;
 }
 
 static PyObject* create_new_parse(PyObject *self, PyObject *args) {
@@ -73,26 +205,6 @@ static PyObject* plan(PyObject *self, PyObject *args) {
     Py_RETURN_NONE;
 }
 
-static PyObject* get_query_record_dict(int appID, int parseID, int recordID) {
-    PyObject *record = PyDict_New();
-    const int fieldsCount = octosql_get_record_fields_count(appID, parseID, recordID);
-    for (int i=0; i<fieldsCount; ++i) {
-        PyObject* fieldVal = NULL;
-        const int fieldType = octosql_get_record_field_type(appID, parseID, recordID, i);
-        switch (fieldType) {
-            case 0:
-                fieldVal = PyLong_FromLong(octosql_get_record_field_as_int(appID, parseID, recordID, i));
-                break;
-        }
-        if (fieldVal != NULL) {
-            char* fieldName = octosql_get_record_field_name(appID, parseID, recordID, i);
-            PyDict_SetItemString(record, fieldName, fieldVal);
-        }
-    }
-
-    return record;
-}
-
 static PyObject* get_query_record_field_value(int appID, int parseID, int recordID, int fieldID) {
     PyObject* fieldVal = NULL;
     const int fieldType = octosql_get_record_field_type(appID, parseID, recordID, fieldID);
@@ -102,6 +214,9 @@ static PyObject* get_query_record_field_value(int appID, int parseID, int record
             break;
         case 3:
             fieldVal = PyUnicode_FromString(octosql_get_record_field_as_string(appID, parseID, recordID, fieldID));
+            break;
+        case 6:
+            fieldVal = PyFloat_FromDouble(octosql_get_record_field_as_float(appID, parseID, recordID, fieldID));
             break;
         default:
             std::cout << "Type other = " << fieldType << "\n";
@@ -113,6 +228,23 @@ static PyObject* get_query_record_field_value(int appID, int parseID, int record
     Py_RETURN_NONE;
 }
 
+
+static PyObject* get_query_record_set_val(PyObject *self, PyObject *args) {
+    PyObject* pycap = ((RecordObject*) self)->pycap;
+
+    RecordObjectCapsule *cap;
+    cap = (RecordObjectCapsule*) PyCapsule_GetPointer(pycap, "NATIVE_RECORD");
+    const int appID = cap->appID;
+    const int parseID = cap->parseID;
+
+    int recordID = 0;
+
+    if (PyLong_Check(args)) {
+        recordID = (int) PyLong_AsLong(args);
+    }
+
+    return create_record_native_wrapper(appID, parseID, recordID);
+}
 
 static PyObject* get_query_record_val(PyObject *self, PyObject *args) {
     PyObject* pycap = ((RecordObject*) self)->pycap;
@@ -142,47 +274,42 @@ static PyObject* get_query_record_val(PyObject *self, PyObject *args) {
 }
 
 static PyObject* get_query_results_obj(int appID, int parseID) {
-
     const int recordsCount = octosql_get_records_count(appID, parseID);
 
-    PyObject *recordsList = PyList_New(recordsCount);
-    for(int i=0;i<recordsCount;++i) {
-          // dict is a borrowed reference.
-          PyObject* dict = PyModule_GetDict(module);
-          if (dict == nullptr) {
-            PyErr_Print();
-            std::cout << "Fails to get the dictionary.\n";
-            return NULL;
-          }
-
-          // Builds the name of a callable class
-          PyObject* python_class = PyDict_GetItemString(dict, "Record");
-          if (python_class == nullptr) {
-            PyErr_Print();
-            std::cout << "Fails to get the Python class.\n";
-            return NULL;
-          }
-
-          PyObject* object;
-          // Creates an instance of the class
-          if (PyCallable_Check(python_class)) {
-            object = PyObject_CallObject(python_class, nullptr);
-          } else {
-            std::cout << "Cannot instantiate the Python class" << std::endl;
-            return NULL;
-          }
-
-          RecordObjectCapsule* cap = (RecordObjectCapsule*) malloc(sizeof(RecordObjectCapsule));
-          cap->appID = appID;
-          cap->parseID = parseID;
-          cap->recordID = i;
-
-          PyObject* pycap = PyCapsule_New((void *)cap, "NATIVE_RECORD", RecordObjectCapsule_destroy);
-          ((RecordObject*) object)->pycap = pycap;
-
-          PyList_Insert(recordsList, i, object);
+    // dict is a borrowed reference.
+    PyObject* dict = PyModule_GetDict(module);
+    if (dict == nullptr) {
+    PyErr_Print();
+    std::cout << "Fails to get the dictionary.\n";
+    return NULL;
     }
-    return recordsList;
+
+    // Builds the name of a callable class
+    PyObject* python_class = PyDict_GetItemString(dict, "RecordSet");
+    if (python_class == nullptr) {
+    PyErr_Print();
+    std::cout << "Fails to get the Python class.\n";
+    return NULL;
+    }
+
+    PyObject* object;
+    // Creates an instance of the class
+    if (PyCallable_Check(python_class)) {
+    object = PyObject_CallObject(python_class, nullptr);
+    } else {
+    std::cout << "Cannot instantiate the Python class" << std::endl;
+    return NULL;
+    }
+
+    RecordObjectCapsule* cap = (RecordObjectCapsule*) malloc(sizeof(RecordObjectCapsule));
+    cap->appID = appID;
+    cap->parseID = parseID;
+    cap->recordID = 0;
+
+    PyObject* pycap = PyCapsule_New((void *)cap, "NATIVE_RECORD", RecordObjectCapsule_destroy);
+    ((RecordObject*) object)->pycap = pycap;
+
+    return object;
 }
 
 static PyObject* run(PyObject *self, PyObject *args) {
@@ -204,12 +331,29 @@ static PyMappingMethods RecordTypeMappingMethods = {
 static PyTypeObject RecordType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "octosql_py_native.Record",
-    .tp_doc = "Records set",
+    .tp_doc = "Record entry",
     .tp_basicsize = sizeof(RecordObject),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = PyType_GenericNew,
     .tp_as_mapping = &RecordTypeMappingMethods,
+    .tp_getattro = get_record_obj_attr,
+};
+
+static PyMappingMethods RecordSetTypeMappingMethods = {
+    .mp_subscript = get_query_record_set_val,
+};
+
+static PyTypeObject RecordSetType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "octosql_py_native.RecordSet",
+    .tp_doc = "Records set",
+    .tp_basicsize = sizeof(RecordSetObject),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = PyType_GenericNew,
+    .tp_as_mapping = &RecordSetTypeMappingMethods,
+    .tp_getattro = get_record_set_obj_attr,
 };
 
 PyMethodDef method_table[] = {
@@ -238,14 +382,16 @@ PyMODINIT_FUNC PyInit_octosql_py_native(void) {
     module = PyModule_Create(&octosql_py_native_module);
     if (PyType_Ready(&RecordType) < 0)
         return NULL;
+    if (PyType_Ready(&RecordSetType) < 0)
+            return NULL;
 
     if (module == NULL)
         return NULL;
 
-    Py_INCREF(&RecordType);
     if (PyModule_AddObject(module, "Record", (PyObject *) &RecordType) < 0) {
-        Py_DECREF(&RecordType);
-        Py_DECREF(module);
+        return NULL;
+    }
+    if (PyModule_AddObject(module, "RecordSet", (PyObject *) &RecordSetType) < 0) {
         return NULL;
     }
 

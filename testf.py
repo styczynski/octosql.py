@@ -9,4 +9,5 @@ conn = octo.connect([
 ])
 query = conn.createQuery("SELECT * FROM lol lol")
 a = query.run()
-print(a[0]["color"])
+
+print(a.values)
