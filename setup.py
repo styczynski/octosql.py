@@ -14,7 +14,13 @@ go_src_path = "./src/lib.go"
 
 class build(build_module.build):
   def run(self):
+    print("LETS DO LS:")
     subprocess.run(['ls'])
+    print("OK NOW ls src:")
+    subprocess.run(['ls src'])
+    print("NOW print cwd")
+    subprocess.run(['echo', '$(pwd)'])
+    print("END")
     subprocess.run(['go', 'build', '-o', libgooctosql_path, '-buildmode=c-archive', go_src_path])
     build_module.build.run(self)
 
