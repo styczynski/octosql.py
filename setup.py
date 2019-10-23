@@ -3,7 +3,19 @@
 
 """The setup script."""
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
+from distutils.command import build as build_module
+import subprocess
+import os
+
+base_path = os.path.dirname(os.path.realpath(__file__))
+libgooctosql_path = os.path.abspath(base_path + "/libs/libgooctosql")
+go_src_path = os.path.abspath(base_path + "/src/lib.go")
+
+class build(build_module.build):
+  def run(self):
+    subprocess.run(['go', 'build', '-o', libgooctosql_path, '-buildmode=c-archive', go_src_path])
+    build_module.build.run(self)
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -21,6 +33,9 @@ setup(
     author="Piotr Styczynski",
     author_email='piotr@styczynski.in',
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*',
+    cmdclass = {
+      'build': build,
+    },
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
@@ -45,11 +60,12 @@ setup(
     include_package_data=True,
     keywords='octosql_py',
     name='octosql_py',
-    packages=find_packages(include=['octosql_py', 'octosql_py.*']),
+    packages=find_packages(include=['octosql_py', 'octosql_py.*', 'octosql_py_native', 'octosql_py_native.*']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/styczynski/octosql_py',
     version='0.2.0',
     zip_safe=False,
+    ext_modules = [Extension("octosql_py_native", ["./src/python/octosql_py_native.cpp"], extra_compile_args=[], extra_link_args=[libgooctosql_path, '-framework', 'CoreFoundation', '-framework', 'Security'])]
 )

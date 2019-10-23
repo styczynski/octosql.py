@@ -6,3 +6,6 @@ octosql_py.egg-info/
 libs/local_build
 vendor/
 libs/
+__pycache__/
+__pycache__/**/
+./**/__pycache__/

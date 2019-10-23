@@ -1,19 +1,17 @@
 package main
 
 import (
+	"context"
 	"github.com/cube2222/octosql/logical"
 	"github.com/cube2222/octosql/storage/excel"
 	"github.com/pkg/errors"
+	"github.com/styczynski/octosql.py/src/helpers"
 	"gopkg.in/yaml.v2"
 	"log"
-	"os"
-	"context"
 	"reflect"
 
 	"github.com/cube2222/octosql/app"
 	"github.com/cube2222/octosql/config"
-	"github.com/cube2222/octosql/output"
-	"github.com/cube2222/octosql/output/table"
 	"github.com/cube2222/octosql/parser"
 	"github.com/cube2222/octosql/parser/sqlparser"
 	"github.com/cube2222/octosql/physical"
@@ -32,7 +30,10 @@ var appInstances *map[int32]*AppInstance = nil
 var appInstancesFI int32 = 0
 var appParseObjs *map[int32]*ParseInstance = nil
 var appParseObjsFI int32 = 0
+var appResultBuffers *map[int32]*helpers.OctoSQLOutputBuffer = nil
+var appResultBuffersFI int32 = 0
 var wasInited bool = false
+var lastError string = ""
 
 type ParseInstance struct {
 	ast* sqlparser.SelectStatement
@@ -44,7 +45,7 @@ type AppInstance struct {
 	sources *physical.DataSourceRepository
 	config *config.Config
 	app *app.App
-	output output.Output
+	bufferID int32
 }
 
 //export test
@@ -61,9 +62,16 @@ func deserializeConfiguration(yamlConfiguration string) (*config.Config, error) 
 	return &configuration, nil
 }
 
+//export octosql_get_error
+func octosql_get_error() (string) {
+	return lastError
+}
+
 //export octosql_init
 func octosql_init() (int32) {
+
 	if wasInited {
+		lastError = "Octosql was already initialized"
 		return 1
 	}
 
@@ -72,6 +80,9 @@ func octosql_init() (int32) {
 
 	appParseObjs = &map[int32]*ParseInstance{}
 	appParseObjsFI = 0
+
+	appResultBuffers = &map[int32]*helpers.OctoSQLOutputBuffer{}
+	appResultBuffersFI = 0
 
 	wasInited = true
 	return 0
@@ -103,14 +114,18 @@ func octosql_new_instance(yamlConfiguration string) (int32) {
 		return -1
 	}
 
-	inst.output = table.NewOutput(os.Stdout, false)
+	var resultBuffer helpers.OctoSQLOutputBuffer = helpers.CreateOutputBuffer()
 
-	inst.app = app.NewApp(inst.config, inst.sources, inst.output)
+	(*appResultBuffers)[appResultBuffersFI] = &resultBuffer
+	appResultBuffersFI++
+	inst.bufferID = appResultBuffersFI-1
+
+	inst.app = app.NewApp(inst.config, inst.sources, &resultBuffer)
 
 	inst.context = context.Background()
-	(*appInstances)[appInstancesFI] = &inst
 	appInstancesFI++
 
+	(*appInstances)[appInstancesFI-1] = &inst
 	return appInstancesFI-1
 }
 
@@ -156,8 +171,18 @@ func octosql_plan(appID int32, parseID int32) {
 	parseObj.plan = &plan
 }
 
+//export octosql_delete_parse
+func octosql_delete_parse(parseID int32) {
+	delete(*appParseObjs, parseID)
+}
+
+//export octosql_delete_instance
+func octosql_delete_instance(appID int32) {
+	delete(*appInstances, appID)
+}
+
 //export octosql_run
-func octosql_run(appID int32, parseID int32) {
+func octosql_run(appID int32, parseID int32) (int32) {
 	inst := (*appInstances)[appID]
 	parseObj := (*appParseObjs)[parseID]
 
@@ -165,4 +190,48 @@ func octosql_run(appID int32, parseID int32) {
 	if err != nil {
 		log.Fatal("couldn't run plan: ", err)
 	}
+
+	return inst.bufferID
+}
+
+//export octosql_get_records_count
+func octosql_get_records_count(appID int32, parseID int32) int32 {
+	return (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordsCount()
+}
+
+//export octosql_get_record_fields_count
+func octosql_get_record_fields_count(appID int32, parseID int32, recordID int32) int32 {
+	return (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordFieldsCount(recordID)
+}
+
+//export octosql_get_record_field_id
+func octosql_get_record_field_id(appID int32, parseID int32, recordID int32, fieldName string) int32 {
+	return (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordFieldID(recordID, fieldName)
+}
+
+//export octosql_get_record_field_name
+func octosql_get_record_field_name(appID int32, parseID int32, recordID int32, fieldID int32) *C.char {
+	res := (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordFieldName(recordID, fieldID)
+	return C.CString(res)
+}
+
+//export octosql_get_record_field_type
+func octosql_get_record_field_type(appID int32, parseID int32, recordID int32, fieldID int32) int32 {
+	return (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordFieldType(recordID, fieldID)
+}
+
+//export octosql_get_record_field_as_int
+func octosql_get_record_field_as_int(appID int32, parseID int32, recordID int32, fieldID int32) int32 {
+	return (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordFieldAsInt(recordID, fieldID)
+}
+
+//export octosql_get_record_field_as_bool
+func octosql_get_record_field_as_bool(appID int32, parseID int32, recordID int32, fieldID int32) bool {
+	return (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordFieldAsBool(recordID, fieldID)
+}
+
+//export octosql_get_record_field_as_string
+func octosql_get_record_field_as_string(appID int32, parseID int32, recordID int32, fieldID int32) *C.char {
+	res := (*appResultBuffers)[(*appInstances)[appID].bufferID].GetRecordFieldAsString(recordID, fieldID)
+	return C.CString(res)
 }
