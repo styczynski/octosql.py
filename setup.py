@@ -12,7 +12,8 @@ base_path = os.path.dirname(os.path.realpath(__file__))
 libgooctosql_path = "./libs/libgooctosql"
 go_src_path = "./src/lib.go"
 
-class build(build_module.build):
+from distutils.command.install_data import install_data
+class build(install_data):
   def run(self):
     print("LETS DO LS:")
     subprocess.run(['ls'])
@@ -41,7 +42,7 @@ setup(
     author_email='piotr@styczynski.in',
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*',
     cmdclass = {
-      'build': build,
+      'install_data': build,
     },
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
