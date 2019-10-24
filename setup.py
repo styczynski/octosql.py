@@ -32,8 +32,13 @@ go_src_path = "./src/lib.go"
 
 def custom_build_hook():
     print("Will install native library in ["+libgooctosql_path+"]")
-    mkdir_p(libgooctosql_path)
+    try:
+        mkdir_p(libgooctosql_directory)
+    except:
+        print("ok")
+    print("remove existing files")
     subprocess.call(['rm', '-r', '-f', libgooctosql_local])
+    print("run native bash setup")
     subprocess.call(['bash', './setup_native.sh', libgooctosql_local, go_src_path])
     print('Remove existing files: '+libgooctosql_path)
     subprocess.call(['rm', '-r', '-f', libgooctosql_path])
