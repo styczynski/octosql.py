@@ -6,16 +6,33 @@
 from setuptools import setup, find_packages, Extension
 from distutils.command import build as build_module
 import subprocess
+import sys
 import os
+import errno
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 base_path = os.path.dirname(os.path.realpath(__file__))
-libgooctosql_path = "./libs/libgooctosql"
+libgooctosql_directory = os.path.abspath(base_path + "/libs")
+libgooctosql_path = libgooctosql_directory + "/libgooctosql"
+libgooctosql_local = "./libs/native_octosql"
 go_src_path = "./src/lib.go"
 
 class build(build_module.build):
   def run(self):
+    print("Will install native library in ["+libgooctosql_path+"]")
     subprocess.call(['go', 'install', './', '...'])
-    subprocess.call(['go', 'build', '-o', libgooctosql_path, '-buildmode=c-archive', go_src_path])
+    subprocess.call(['go', 'build', '-o', libgooctosql_local, '-buildmode=c-archive', go_src_path])
+    mkdir_p(libgooctosql_path)
+    subprocess.call(['rm', '-r', '-f', libgooctosql_path])
+    subprocess.call(['cp', libgooctosql_local, libgooctosql_path])
     build_module.build.run(self)
 
 with open('README.rst') as readme_file:
@@ -29,6 +46,10 @@ requirements = ['Click>=7.0', ]
 setup_requirements = ['pytest-runner', ]
 
 test_requirements = ['pytest>=3', ]
+
+native_link_flags = [libgooctosql_path]
+if sys.platform.startswith('darwin'):
+    native_link_flags = [libgooctosql_path, '-framework', 'CoreFoundation', '-framework', 'Security']
 
 setup(
     author="Piotr Styczynski",
@@ -68,5 +89,5 @@ setup(
     url='https://github.com/styczynski/octosql_py',
     version='0.2.0',
     zip_safe=False,
-    ext_modules = [Extension("octosql_py_native", ["./src/python/octosql_py_native.cpp"], extra_compile_args=[], extra_link_args=[libgooctosql_path, '-framework', 'CoreFoundation', '-framework', 'Security'])]
+    ext_modules = [Extension("octosql_py_native", ["./src/python/octosql_py_native.cpp"], extra_compile_args=[], extra_link_args=native_link_flags)]
 )
