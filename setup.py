@@ -38,12 +38,12 @@ def custom_build_hook():
     subprocess.call(['bash', './setup_native.sh', libgooctosql_local, go_src_path])
 
     subprocess.call(['cp', libgooctosql_local, libgooctosql_path])
-    build_module.build.run(self)
 
 
 class CustomBuildCommand(build_module.build):
     def run(self):
         custom_build_hook()
+        build_module.build.run(self)
 
 class CustomInstallCommand(install):
     def run(self):
