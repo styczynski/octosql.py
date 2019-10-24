@@ -126,6 +126,7 @@ func octosql_new_instance(yamlConfiguration string) (int32) {
 	appInstancesFI++
 
 	(*appInstances)[appInstancesFI-1] = &inst
+
 	return appInstancesFI-1
 }
 

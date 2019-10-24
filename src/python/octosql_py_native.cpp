@@ -11,7 +11,8 @@
 #define DEBUG 0
 
 #define dbg if (DEBUG)
-#define dbgm if (DEBUG) std::cout << "\n" <<
+#define dbgm if (DEBUG) std::cout.flush(); \
+    if (DEBUG) std::cout << "\n" <<
 
 static const char* PyStringLike_AsStringAndSize(PyObject* o, Py_ssize_t* size) {
     #ifdef PY3K
@@ -100,9 +101,13 @@ static PyObject* new_instance(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "s", &yamlConfiguration)) {
         return NULL;
     }
+
+    dbgm "new_instance: Call native method";
     const int id = octosql_new_instance(strToGo(yamlConfiguration));
+    
 
     dbgm "new_instance: Return generated ID";
+    
     return PyLong_FromLong(id);
 }
 
@@ -254,7 +259,14 @@ static PyObject* get_record_obj_attr(PyObject *self, PyObject *args) {
 }
 
 static PyObject* create_new_parse(PyObject *self, PyObject *args) {
-    return PyLong_FromLong(octosql_create_new_parse());
+    dbgm "Create new parse";
+    
+
+    PyObject* o = PyLong_FromLong(octosql_create_new_parse());
+
+    dbgm "Create new parse - end";
+    
+    return o;
 }
 
 static PyObject* parse(PyObject *self, PyObject *args) {
@@ -266,6 +278,8 @@ static PyObject* parse(PyObject *self, PyObject *args) {
     }
 
     octosql_parse(appID, parseID, strToGo(input));
+    dbgm "Parse done!";
+    
     Py_RETURN_NONE;
 }
 
@@ -350,44 +364,62 @@ static PyObject* get_query_record_val(PyObject *self, PyObject *args) {
 }
 
 static PyObject* get_query_results_obj(int appID, int parseID) {
+    dbgm "get_query_results_obj - started";
+    
+
     // dict is a borrowed reference.
     PyObject* dict = PyModule_GetDict(module);
     if (dict == NULL) {
         PyErr_Print();
         std::cout << "Fails to get the dictionary.\n";
+        
         return NULL;
     }
 
+    dbgm "get_query_results_obj - class";
+    
     // Builds the name of a callable class
     PyObject* python_class = PyDict_GetItemString(dict, "RecordSet");
     if (python_class == NULL) {
         PyErr_Print();
         std::cout << "Fails to get the Python class.\n";
+        
         return NULL;
     }
 
+    dbgm "get_query_results_obj - new instance";
+    
     PyObject* object;
     // Creates an instance of the class
     if (PyCallable_Check(python_class)) {
         object = PyObject_CallObject(python_class, NULL);
     } else {
         std::cout << "Cannot instantiate the Python class" << std::endl;
+        
         return NULL;
     }
 
+    dbgm "get_query_results_obj - capsule";
+    
     RecordObjectCapsule* cap = (RecordObjectCapsule*) malloc(sizeof(RecordObjectCapsule));
     cap->appID = appID;
     cap->parseID = parseID;
     cap->recordID = 0;
 
+    dbgm "get_query_results_obj - capsule pack and set";
+    
     PyObject* pycap = PyCapsule_New((void *)cap, "NATIVE_RECORD", RecordObjectCapsule_destroy);
     ((RecordObject*) object)->pycap = pycap;
 
+    dbgm "get_query_results_obj - return";
+    
     return object;
 }
 
 static PyObject* run(PyObject *self, PyObject *args) {
     int appID, parseID;
+    dbgm "run() - started";
+    
 
     if (!PyArg_ParseTuple(args, "ll", &appID, &parseID)) {
         return NULL;
@@ -395,6 +427,8 @@ static PyObject* run(PyObject *self, PyObject *args) {
 
     octosql_run(appID, parseID);
 
+    dbgm "run() - end now get query results";
+    
     return get_query_results_obj(appID, parseID);
 }
 
@@ -426,6 +460,23 @@ static PyTypeObject RecordType = {
     0,                          /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,         /* tp_flags */
     "Record entry object",      /* tp_doc */
+    0,                              /* tp_traverse */
+    0,                              /* tp_clear */
+    0,                              /* tp_richcompare */
+    0,                              /* tp_weaklistoffset */
+    0,                              /* tp_iter */
+    0,                              /* tp_iternext */
+    0,                              /* tp_methods */
+    0,                              /* tp_members */
+    0,                              /* tp_getset */
+    0,                              /* tp_base */
+    0,                              /* tp_dict */
+    0,                              /* tp_descr_get */
+    0,                              /* tp_descr_set */
+    0,                              /* tp_dictoffset */
+    0,                              /* tp_init */
+    0,                              /* tp_alloc */
+    PyType_GenericNew,                      /* tp_new */
 };
 
 static PyMappingMethods RecordSetTypeMappingMethods = {
@@ -456,6 +507,23 @@ static PyTypeObject RecordSetType = {
     0,                         /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,        /* tp_flags */
     "Record set object",       /* tp_doc */
+    0,                              /* tp_traverse */
+    0,                              /* tp_clear */
+    0,                              /* tp_richcompare */
+    0,                              /* tp_weaklistoffset */
+    0,                              /* tp_iter */
+    0,                              /* tp_iternext */
+    0,                              /* tp_methods */
+    0,                              /* tp_members */
+    0,                              /* tp_getset */
+    0,                              /* tp_base */
+    0,                              /* tp_dict */
+    0,                              /* tp_descr_get */
+    0,                              /* tp_descr_set */
+    0,                              /* tp_dictoffset */
+    0,                              /* tp_init */
+    0,                              /* tp_alloc */
+    PyType_GenericNew,                      /* tp_new */
 };
 
 PyMethodDef method_table[] = {
@@ -486,7 +554,7 @@ PyMODINIT_FUNC PyInit_octosql_py_native(void) {
     if (PyType_Ready(&RecordType) < 0)
         return NULL;
     if (PyType_Ready(&RecordSetType) < 0)
-            return NULL;
+        return NULL;
 
     if (module == NULL)
         return NULL;
@@ -507,7 +575,7 @@ PyMODINIT_FUNC initoctosql_py_native(void) {
     if (PyType_Ready(&RecordType) < 0)
         return;
     if (PyType_Ready(&RecordSetType) < 0)
-            return;
+        return;
 
     if (module == NULL)
         return;
