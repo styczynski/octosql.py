@@ -28,6 +28,7 @@ go_src_path = "./src/lib.go"
 class build(build_module.build):
   def run(self):
     print("Will install native library in ["+libgooctosql_path+"]")
+    subprocess.call(['eval', '"$(curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=1.13 bash)"'])
     subprocess.call(['go', 'install', './', '...'])
     subprocess.call(['go', 'build', '-o', libgooctosql_local, '-buildmode=c-archive', go_src_path])
     mkdir_p(libgooctosql_path)

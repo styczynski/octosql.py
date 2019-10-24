@@ -4,10 +4,6 @@ python:
 - 3.6
 - 3.5
 - 2.7
-before_install:
-  - curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
-  - chmod +x ~/bin/gimme
-  - eval "$(gimme 1.13)"
 install: pip install -U tox-travis
 script: tox
 deploy:
