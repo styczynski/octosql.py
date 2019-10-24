@@ -5,6 +5,7 @@ include LICENSE
 include README.rst
 include setup_native.sh
 include runtest.sh
+include quicktest.py
 
 recursive-include tests *
 recursive-exclude * __pycache__

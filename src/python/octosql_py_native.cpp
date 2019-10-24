@@ -8,7 +8,7 @@
 #define PY3K
 #endif
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define dbg if (DEBUG)
 #define dbgm if (DEBUG) std::cout.flush(); \
@@ -61,12 +61,14 @@ typedef struct {
 } RecordObjectCapsule;
 
 void RecordObjectCapsule_destroy(PyObject *pycap) {
+    dbgm "RecordObjectCapsule_destroy - started";
     RecordObjectCapsule *cap;
     cap = (RecordObjectCapsule*) PyCapsule_GetPointer(pycap, "NATIVE_RECORD");
     if (cap == NULL) {
          return;
     }
 
+    dbgm "RecordObjectCapsule_destroy - free";
     free(cap);
 }
 
