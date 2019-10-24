@@ -7,6 +7,7 @@
 #include "libgooctosql.h"
 #include "helper.h"
 #include "structmember.h"
+#include "../custom_storage/custom_storage.hpp"
 
 static PyTypeObject* RecordSetType_get();
 static PyTypeObject* RecordType_get();
@@ -53,6 +54,60 @@ static PyObject* init(PyObject *self, PyObject *args) {
         return NULL;
     }
     Py_RETURN_NONE;
+}
+
+static PyObject* create_native_source(PyObject *self, PyObject *args) {
+
+    dbgm "Deserialize factory";
+    PyObject* recordFactory;
+    if (!PyArg_ParseTuple(args, "O", &recordFactory)) {
+        return NULL;
+    }
+    Py_INCREF(recordFactory);
+
+    auto fun = [=](){
+        NativeSourceRecord record;
+
+        dbgm "Call custom record method";
+        std::string val = "ala";
+        PyObject* pyRecord = PyObject_CallFunction(recordFactory, "s", val.c_str());
+        Py_XINCREF(pyRecord);
+        dbgm "Call end -> " << ((int)(size_t)pyRecord);
+
+        if (PyDict_Check(pyRecord)) {
+            PyObject *key, *value;
+            Py_ssize_t pos = 0;
+
+            while (PyDict_Next(pyRecord, &pos, &key, &value)) {
+                NativeSourceValue field;
+                field.name = PyStringLike_AsCppString(key);
+                field.value = 0;
+                field.type = 0;
+                if (PyLong_Check(value)) {
+                    field.value = (void*) PyLong_AsLong(value);
+                    field.type = 0;
+                    record.fields.push_back(field);
+                } else if (PyStringLike_Check(value)) {
+                    std::string* fstr = (std::string*) malloc(sizeof(std::string));
+                    *fstr = PyStringLike_AsCppString(value);
+                    field.value = fstr;
+                    field.type = 3;
+                    record.fields.push_back(field);
+                }
+            }
+        }
+
+        dbgm "Return record";
+        return record;
+    };
+
+    NativeSourceRecord empty_record;
+    NativeSource new_source = {
+        fun,
+        empty_record,
+    };
+
+    return PyLong_FromLong(octosql_register_native_source(new_source));
 }
 
 static PyObject* new_instance(PyObject *self, PyObject *args) {
@@ -486,6 +541,7 @@ PyMethodDef method_table[] = {
     {"parse", (PyCFunction) parse, METH_VARARGS, "Method docstring"},
     {"plan", (PyCFunction) plan, METH_VARARGS, "Method docstring"},
     {"run", (PyCFunction) run, METH_VARARGS, "Method docstring"},
+    {"create_native_source", (PyCFunction) create_native_source, METH_VARARGS, "Method docstring"},
     {NULL, NULL, 0, NULL} // Sentinel value ending the table
 };
 

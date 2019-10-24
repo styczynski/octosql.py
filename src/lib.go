@@ -5,6 +5,7 @@ import (
 	"github.com/cube2222/octosql/logical"
 	"github.com/cube2222/octosql/storage/excel"
 	"github.com/pkg/errors"
+	"github.com/styczynski/octosql.py/src/custom_storage"
 	"github.com/styczynski/octosql.py/src/helpers"
 	"gopkg.in/yaml.v2"
 	"log"
@@ -100,6 +101,7 @@ func octosql_new_instance(yamlConfiguration string) (int32) {
 
 	inst.sources, err = physical.CreateDataSourceRepositoryFromConfig(
 		map[string]physical.Factory{
+			"custom":   custom_storage.NewDataSourceBuilderFactoryFromConfig,
 			"csv":      csv.NewDataSourceBuilderFactoryFromConfig,
 			"json":     json.NewDataSourceBuilderFactoryFromConfig,
 			"mysql":    mysql.NewDataSourceBuilderFactoryFromConfig,
