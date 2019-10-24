@@ -92,8 +92,6 @@ static PyObject* get_query_record_dict(int appID, int parseID, int recordID) {
 static PyObject* create_record_native_wrapper(int appID, int parseID, int recordID) {
     dbgm "create_record_native_wrapper: Get module as dictionary";
 
-    RecordObject* object = PyObject_New(RecordObject, RecordType_get());
-
     dbgm "create_fields_list: Fill record capsule";
     RecordObjectCapsule* cap = (RecordObjectCapsule*) malloc(sizeof(RecordObjectCapsule));
     cap->appID = appID;
@@ -104,7 +102,9 @@ static PyObject* create_record_native_wrapper(int appID, int parseID, int record
     PyObject* pycap = PyCapsule_New((void *)cap, "NATIVE_RECORD", RecordObjectCapsule_destroy);
 
     dbgm "get_query_results_obj - capsule set";
-    object->pycap = pycap;
+    PyObject* argList = Py_BuildValue("(O)", pycap);
+    PyObject* object = PyObject_CallObject((PyObject *) RecordType_get(), argList);
+    Py_DECREF(argList);
 
     dbgm "create_fields_list: Return newly created object";
     return (PyObject*) object;
@@ -304,8 +304,6 @@ static PyObject* get_query_record_val(PyObject *self, PyObject *args) {
 
 static PyObject* get_query_results_obj(int appID, int parseID) {
     dbgm "get_query_results_obj - started";
-    
-    RecordSetObject* object = PyObject_New(RecordSetObject, RecordSetType_get());
 
     dbgm "get_query_results_obj - capsule";
     
@@ -319,7 +317,9 @@ static PyObject* get_query_results_obj(int appID, int parseID) {
     PyObject* pycap = PyCapsule_New((void *)cap, "NATIVE_RECORD", RecordObjectCapsule_destroy);
 
     dbgm "get_query_results_obj - capsule set";
-    object->pycap = pycap;
+    PyObject* argList = Py_BuildValue("(O)", pycap);
+    PyObject* object = PyObject_CallObject((PyObject *) RecordSetType_get(), argList);
+    Py_DECREF(argList);
 
     dbgm "get_query_results_obj - return";
     
@@ -340,6 +340,30 @@ static PyObject* run(PyObject *self, PyObject *args) {
     dbgm "run() - end now get query results";
     
     return get_query_results_obj(appID, parseID);
+}
+
+static int RecordSetType_init(RecordObject *self, PyObject *args, PyObject *kwargs) {
+
+    PyObject* pycap;
+    if (!PyArg_ParseTuple(args, "O", &pycap)) {
+        return 1;
+    }
+
+    self->pycap = pycap;
+
+    return 0;
+}
+
+static int RecordType_init(RecordObject *self, PyObject *args, PyObject *kwargs) {
+
+    PyObject* pycap;
+    if (!PyArg_ParseTuple(args, "O", &pycap)) {
+        return 1;
+    }
+
+    self->pycap = pycap;
+
+    return 0;
 }
 
 static PyMappingMethods RecordTypeMappingMethods = {
@@ -389,10 +413,11 @@ static PyTypeObject RecordType = {
     0,                              /* tp_descr_get */
     0,                              /* tp_descr_set */
     0,                              /* tp_dictoffset */
-    0,                              /* tp_init */
+    (initproc) RecordType_init,     /* tp_init */
     0,                              /* tp_alloc */
     PyType_GenericNew,                      /* tp_new */
 };
+
 
 static PyTypeObject* RecordType_get() {
     return &RecordType;
@@ -445,7 +470,7 @@ static PyTypeObject RecordSetType = {
     0,                              /* tp_descr_get */
     0,                              /* tp_descr_set */
     0,                              /* tp_dictoffset */
-    0,                              /* tp_init */
+    (initproc) RecordSetType_init,  /* tp_init */
     0,                              /* tp_alloc */
     PyType_GenericNew,                      /* tp_new */
 };
