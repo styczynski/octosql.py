@@ -5,6 +5,10 @@
 
 from setuptools import setup, find_packages, Extension
 from distutils.command import build as build_module
+from setuptools.command.install import install
+from setuptools.command.develop import develop
+from setuptools.command.egg_info import egg_info
+
 import subprocess
 import sys
 import os
@@ -25,8 +29,8 @@ libgooctosql_path = libgooctosql_directory + "/libgooctosql"
 libgooctosql_local = "./libs/native_octosql"
 go_src_path = "./src/lib.go"
 
-class build(build_module.build):
-  def run(self):
+
+def custom_build_hook():
     print("Will install native library in ["+libgooctosql_path+"]")
     mkdir_p(libgooctosql_path)
     subprocess.call(['rm', '-r', '-f', libgooctosql_path])
@@ -35,6 +39,28 @@ class build(build_module.build):
 
     subprocess.call(['cp', libgooctosql_local, libgooctosql_path])
     build_module.build.run(self)
+
+
+class CustomBuildCommand(build_module.build):
+    def run(self):
+        custom_build_hook()
+
+class CustomInstallCommand(install):
+    def run(self):
+        install.run(self)
+        custom_build_hook()
+
+
+class CustomDevelopCommand(develop):
+    def run(self):
+        develop.run(self)
+        custom_build_hook()
+
+
+class CustomEggInfoCommand(egg_info):
+    def run(self):
+        egg_info.run(self)
+        custom_build_hook()
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -56,8 +82,11 @@ setup(
     author="Piotr Styczynski",
     author_email='piotr@styczynski.in',
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*',
-    cmdclass = {
-      'build': build,
+    cmdclass={
+        'build': CustomBuildCommand,
+        'install': CustomInstallCommand,
+        'develop': CustomDevelopCommand,
+        'egg_info': CustomEggInfoCommand,
     },
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
