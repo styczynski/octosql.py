@@ -399,7 +399,9 @@ static PyObject* run(PyObject *self, PyObject *args) {
 }
 
 static PyMappingMethods RecordTypeMappingMethods = {
-    .mp_subscript = get_query_record_val,
+    0, /* mp_length */
+    get_query_record_val,  /* mp_subscript */
+    0,  /* mp_ass_subscript */
 };
 
 static PyTypeObject RecordType = {
@@ -428,7 +430,7 @@ static PyTypeObject RecordType = {
 
 static PyMappingMethods RecordSetTypeMappingMethods = {
     0, /* mp_length */
-    .mp_subscript = get_query_record_set_val,  /* mp_subscript */
+    get_query_record_set_val,  /* mp_subscript */
     0,  /* mp_ass_subscript */
 };
 
