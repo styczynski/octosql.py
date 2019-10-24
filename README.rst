@@ -4,13 +4,13 @@ octosql-py
 
 
 .. image:: https://img.shields.io/pypi/v/octosql_py.svg
-        :target: https://pypi.python.org/pypi/octosql_py
+        :target: https://pypi.python.org/pypi/octosql.py
 
 .. image:: https://img.shields.io/travis/styczynski/octosql_py.svg
-        :target: https://travis-ci.org/styczynski/octosql_py
+        :target: https://travis-ci.org/styczynski/octosql.py
 
 .. image:: https://readthedocs.org/projects/octosql-py/badge/?version=latest
-        :target: https://octosql-py.readthedocs.io/en/latest/?badge=latest
+        :target: https://octosqlpy.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
 
