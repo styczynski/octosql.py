@@ -4,6 +4,7 @@ include HISTORY.rst
 include LICENSE
 include README.rst
 include setup_native.sh
+include runtest.sh
 
 recursive-include tests *
 recursive-exclude * __pycache__
