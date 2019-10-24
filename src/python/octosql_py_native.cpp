@@ -17,10 +17,6 @@ static const char* PyStringLike_AsStringAndSize(PyObject* o, Py_ssize_t* size) {
     #ifdef PY3K
         if (PyUnicode_Check(o)) {
             return PyUnicode_AsUTF8AndSize(o, size);
-        } else if (PyString_Check(o)) {
-            char* ret = PyString_AsString(str);
-            *size = strlen(ret);
-            return ret;
         }
     #else
         if (PyUnicode_Check(o)) {
@@ -36,7 +32,7 @@ static const char* PyStringLike_AsStringAndSize(PyObject* o, Py_ssize_t* size) {
     #endif
 
     *size = 0;
-    return nullptr;
+    return NULL;
 }
 
 static PyObject* PyStringLike_FromString(const char* input) {
@@ -132,29 +128,29 @@ static PyObject* create_record_native_wrapper(int appID, int parseID, int record
 
     // dict is a borrowed reference.
     PyObject* dict = PyModule_GetDict(module);
-    if (dict == nullptr) {
-    PyErr_Print();
-    std::cout << "Fails to get the dictionary.\n";
-    return NULL;
+    if (dict == NULL) {
+        PyErr_Print();
+        std::cout << "Fails to get the dictionary.\n";
+        return NULL;
     }
 
     dbgm "create_fields_list: Get callable type constructor";
     // Builds the name of a callable class
     PyObject* python_class = PyDict_GetItemString(dict, "Record");
-    if (python_class == nullptr) {
-    PyErr_Print();
-    std::cout << "Fails to get the Python class.\n";
-    return NULL;
+        if (python_class == NULL) {
+        PyErr_Print();
+        std::cout << "Fails to get the Python class.\n";
+        return NULL;
     }
 
     dbgm "create_fields_list: Create new instance of object";
     PyObject* object;
     // Creates an instance of the class
     if (PyCallable_Check(python_class)) {
-    object = PyObject_CallObject(python_class, nullptr);
+        object = PyObject_CallObject(python_class, NULL);
     } else {
-    std::cout << "Cannot instantiate the Python class" << std::endl;
-    return NULL;
+        std::cout << "Cannot instantiate the Python class" << std::endl;
+        return NULL;
     }
 
     dbgm "create_fields_list: Fill record capsule";
@@ -354,31 +350,29 @@ static PyObject* get_query_record_val(PyObject *self, PyObject *args) {
 }
 
 static PyObject* get_query_results_obj(int appID, int parseID) {
-    const int recordsCount = octosql_get_records_count(appID, parseID);
-
     // dict is a borrowed reference.
     PyObject* dict = PyModule_GetDict(module);
-    if (dict == nullptr) {
-    PyErr_Print();
-    std::cout << "Fails to get the dictionary.\n";
-    return NULL;
+    if (dict == NULL) {
+        PyErr_Print();
+        std::cout << "Fails to get the dictionary.\n";
+        return NULL;
     }
 
     // Builds the name of a callable class
     PyObject* python_class = PyDict_GetItemString(dict, "RecordSet");
-    if (python_class == nullptr) {
-    PyErr_Print();
-    std::cout << "Fails to get the Python class.\n";
-    return NULL;
+    if (python_class == NULL) {
+        PyErr_Print();
+        std::cout << "Fails to get the Python class.\n";
+        return NULL;
     }
 
     PyObject* object;
     // Creates an instance of the class
     if (PyCallable_Check(python_class)) {
-    object = PyObject_CallObject(python_class, nullptr);
+        object = PyObject_CallObject(python_class, NULL);
     } else {
-    std::cout << "Cannot instantiate the Python class" << std::endl;
-    return NULL;
+        std::cout << "Cannot instantiate the Python class" << std::endl;
+        return NULL;
     }
 
     RecordObjectCapsule* cap = (RecordObjectCapsule*) malloc(sizeof(RecordObjectCapsule));
@@ -410,30 +404,56 @@ static PyMappingMethods RecordTypeMappingMethods = {
 
 static PyTypeObject RecordType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "octosql_py_native.Record",
-    .tp_doc = "Record entry",
-    .tp_basicsize = sizeof(RecordObject),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyType_GenericNew,
-    .tp_as_mapping = &RecordTypeMappingMethods,
-    .tp_getattro = get_record_obj_attr,
+    "octosql_py_native.Record", /* tp_name */
+    sizeof(RecordObject),       /* tp_basicsize */
+    0,                          /* tp_itemsize */
+    0,                          /* tp_dealloc */
+    0,                          /* tp_print */
+    0,                          /* tp_getattr */
+    0,                          /* tp_setattr */
+    0,                          /* tp_reserved */
+    0,                          /* tp_repr */
+    0,                          /* tp_as_number */
+    0,                          /* tp_as_sequence */
+    &RecordTypeMappingMethods,  /* tp_as_mapping */
+    0,                          /* tp_hash  */
+    0,                          /* tp_call */
+    0,                          /* tp_str */
+    get_record_obj_attr,        /* tp_getattro */
+    0,                          /* tp_setattro */
+    0,                          /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,         /* tp_flags */
+    "Record entry object",      /* tp_doc */
 };
 
 static PyMappingMethods RecordSetTypeMappingMethods = {
-    .mp_subscript = get_query_record_set_val,
+    0, /* mp_length */
+    .mp_subscript = get_query_record_set_val,  /* mp_subscript */
+    0,  /* mp_ass_subscript */
 };
 
 static PyTypeObject RecordSetType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "octosql_py_native.RecordSet",
-    .tp_doc = "Records set",
-    .tp_basicsize = sizeof(RecordSetObject),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyType_GenericNew,
-    .tp_as_mapping = &RecordSetTypeMappingMethods,
-    .tp_getattro = get_record_set_obj_attr,
+    "octosql_py_native.RecordSet", /* tp_name */
+    sizeof(RecordSetObject),   /* tp_basicsize */
+    0,                         /* tp_itemsize */
+    0,                         /* tp_dealloc */
+    0,                         /* tp_print */
+    0,                         /* tp_getattr */
+    0,                         /* tp_setattr */
+    0,                         /* tp_reserved */
+    0,                         /* tp_repr */
+    0,                         /* tp_as_number */
+    0,                         /* tp_as_sequence */
+    &RecordSetTypeMappingMethods, /* tp_as_mapping */
+    0,                         /* tp_hash  */
+    0,                         /* tp_call */
+    0,                         /* tp_str */
+    get_record_set_obj_attr,   /* tp_getattro */
+    0,                         /* tp_setattro */
+    0,                         /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,        /* tp_flags */
+    "Record set object",       /* tp_doc */
 };
 
 PyMethodDef method_table[] = {

@@ -7,7 +7,7 @@
 GoString strToGo(char* str) {
     GoString goStr = {
         .p = str,
-        .n = strlen(str),
+        .n = (ptrdiff_t) strlen(str),
     };
     return goStr;
 }
