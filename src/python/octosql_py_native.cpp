@@ -100,8 +100,11 @@ static PyObject* create_record_native_wrapper(int appID, int parseID, int record
     cap->parseID = parseID;
     cap->recordID = recordID;
 
+    dbgm "get_query_results_obj - capsule pack the val";
     PyObject* pycap = PyCapsule_New((void *)cap, "NATIVE_RECORD", RecordObjectCapsule_destroy);
-    ((RecordObject*) object)->pycap = pycap;
+
+    dbgm "get_query_results_obj - capsule set";
+    object->pycap = pycap;
 
     dbgm "create_fields_list: Return newly created object";
     return (PyObject*) object;
@@ -311,10 +314,12 @@ static PyObject* get_query_results_obj(int appID, int parseID) {
     cap->parseID = parseID;
     cap->recordID = 0;
 
-    dbgm "get_query_results_obj - capsule pack and set";
+    dbgm "get_query_results_obj - capsule pack it";
     
     PyObject* pycap = PyCapsule_New((void *)cap, "NATIVE_RECORD", RecordObjectCapsule_destroy);
-    ((RecordObject*) object)->pycap = pycap;
+
+    dbgm "get_query_results_obj - capsule set";
+    object->pycap = pycap;
 
     dbgm "get_query_results_obj - return";
     
