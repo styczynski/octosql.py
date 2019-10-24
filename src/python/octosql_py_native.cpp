@@ -1,56 +1,15 @@
+#define DEBUG 1
 #define PY_SSIZE_T_CLEAN
+
 #include <Python.h>
 #include <iostream>
-#include "./libgooctosql.h"
-#include "./helper.h"
+#include "debug.h"
+#include "libgooctosql.h"
+#include "helper.h"
+#include "structmember.h"
 
-#if PY_MAJOR_VERSION >= 3
-#define PY3K
-#endif
-
-#define DEBUG 1
-
-#define dbg if (DEBUG)
-#define dbgm if (DEBUG) std::cout.flush(); \
-    if (DEBUG) std::cout << "\n" <<
-
-static const char* PyStringLike_AsStringAndSize(PyObject* o, Py_ssize_t* size) {
-    #ifdef PY3K
-        if (PyUnicode_Check(o)) {
-            return PyUnicode_AsUTF8AndSize(o, size);
-        }
-    #else
-        if (PyUnicode_Check(o)) {
-            PyObject* str = PyUnicode_AsUTF8String(o);
-            char* ret = PyString_AsString(str);
-            *size = strlen(ret);
-            return ret;
-        } else if (PyString_Check(o)) {
-            char* buf;
-            PyString_AsStringAndSize(o, &buf, size);
-            return buf;
-        }
-    #endif
-
-    *size = 0;
-    return NULL;
-}
-
-static PyObject* PyStringLike_FromString(const char* input) {
-    #ifdef PY3K
-        return PyUnicode_FromString(input);
-    #else
-        return PyString_FromString(input);
-    #endif
-}
-
-static bool PyStringLike_Check(PyObject* o) {
-    #ifdef PY3K
-        return PyUnicode_Check(o);
-    #else
-        return PyUnicode_Check(o) || PyString_Check(o);
-    #endif
-}
+static PyTypeObject* RecordSetType_get();
+static PyTypeObject* RecordType_get();
 
 PyObject* module = NULL;
 
@@ -133,32 +92,7 @@ static PyObject* get_query_record_dict(int appID, int parseID, int recordID) {
 static PyObject* create_record_native_wrapper(int appID, int parseID, int recordID) {
     dbgm "create_record_native_wrapper: Get module as dictionary";
 
-    // dict is a borrowed reference.
-    PyObject* dict = PyModule_GetDict(module);
-    if (dict == NULL) {
-        PyErr_Print();
-        std::cout << "Fails to get the dictionary.\n";
-        return NULL;
-    }
-
-    dbgm "create_fields_list: Get callable type constructor";
-    // Builds the name of a callable class
-    PyObject* python_class = PyDict_GetItemString(dict, "Record");
-        if (python_class == NULL) {
-        PyErr_Print();
-        std::cout << "Fails to get the Python class.\n";
-        return NULL;
-    }
-
-    dbgm "create_fields_list: Create new instance of object";
-    PyObject* object;
-    // Creates an instance of the class
-    if (PyCallable_Check(python_class)) {
-        object = PyObject_CallObject(python_class, NULL);
-    } else {
-        std::cout << "Cannot instantiate the Python class" << std::endl;
-        return NULL;
-    }
+    RecordObject* object = PyObject_New(RecordObject, RecordType_get());
 
     dbgm "create_fields_list: Fill record capsule";
     RecordObjectCapsule* cap = (RecordObjectCapsule*) malloc(sizeof(RecordObjectCapsule));
@@ -170,7 +104,7 @@ static PyObject* create_record_native_wrapper(int appID, int parseID, int record
     ((RecordObject*) object)->pycap = pycap;
 
     dbgm "create_fields_list: Return newly created object";
-    return object;
+    return (PyObject*) object;
 }
 
 static PyObject* create_fields_list(int appID, int parseID, int recordID) {
@@ -368,38 +302,7 @@ static PyObject* get_query_record_val(PyObject *self, PyObject *args) {
 static PyObject* get_query_results_obj(int appID, int parseID) {
     dbgm "get_query_results_obj - started";
     
-
-    // dict is a borrowed reference.
-    PyObject* dict = PyModule_GetDict(module);
-    if (dict == NULL) {
-        PyErr_Print();
-        std::cout << "Fails to get the dictionary.\n";
-        
-        return NULL;
-    }
-
-    dbgm "get_query_results_obj - class";
-    
-    // Builds the name of a callable class
-    PyObject* python_class = PyDict_GetItemString(dict, "RecordSet");
-    if (python_class == NULL) {
-        PyErr_Print();
-        std::cout << "Fails to get the Python class.\n";
-        
-        return NULL;
-    }
-
-    dbgm "get_query_results_obj - new instance";
-    
-    PyObject* object;
-    // Creates an instance of the class
-    if (PyCallable_Check(python_class)) {
-        object = PyObject_CallObject(python_class, NULL);
-    } else {
-        std::cout << "Cannot instantiate the Python class" << std::endl;
-        
-        return NULL;
-    }
+    RecordSetObject* object = PyObject_New(RecordSetObject, RecordSetType_get());
 
     dbgm "get_query_results_obj - capsule";
     
@@ -415,7 +318,7 @@ static PyObject* get_query_results_obj(int appID, int parseID) {
 
     dbgm "get_query_results_obj - return";
     
-    return object;
+    return (PyObject*) object;
 }
 
 static PyObject* run(PyObject *self, PyObject *args) {
@@ -438,6 +341,11 @@ static PyMappingMethods RecordTypeMappingMethods = {
     0, /* mp_length */
     get_query_record_val,  /* mp_subscript */
     0,  /* mp_ass_subscript */
+};
+
+static PyMemberDef RecordTypeMembers[] = {
+    {"pycap", T_OBJECT_EX, offsetof(RecordObject, pycap), 0, "Native record identifier"},
+    {NULL}
 };
 
 static PyTypeObject RecordType = {
@@ -469,7 +377,7 @@ static PyTypeObject RecordType = {
     0,                              /* tp_iter */
     0,                              /* tp_iternext */
     0,                              /* tp_methods */
-    0,                              /* tp_members */
+    RecordTypeMembers,              /* tp_members */
     0,                              /* tp_getset */
     0,                              /* tp_base */
     0,                              /* tp_dict */
@@ -481,10 +389,19 @@ static PyTypeObject RecordType = {
     PyType_GenericNew,                      /* tp_new */
 };
 
+static PyTypeObject* RecordType_get() {
+    return &RecordType;
+}
+
 static PyMappingMethods RecordSetTypeMappingMethods = {
     0, /* mp_length */
     get_query_record_set_val,  /* mp_subscript */
     0,  /* mp_ass_subscript */
+};
+
+static PyMemberDef RecordSetTypeMembers[] = {
+    {"pycap", T_OBJECT_EX, offsetof(RecordSetObject, pycap), 0, "Native record set identifier"},
+    {NULL}
 };
 
 static PyTypeObject RecordSetType = {
@@ -516,7 +433,7 @@ static PyTypeObject RecordSetType = {
     0,                              /* tp_iter */
     0,                              /* tp_iternext */
     0,                              /* tp_methods */
-    0,                              /* tp_members */
+    RecordSetTypeMembers,           /* tp_members */
     0,                              /* tp_getset */
     0,                              /* tp_base */
     0,                              /* tp_dict */
@@ -527,6 +444,10 @@ static PyTypeObject RecordSetType = {
     0,                              /* tp_alloc */
     PyType_GenericNew,                      /* tp_new */
 };
+
+static PyTypeObject* RecordSetType_get() {
+    return &RecordSetType;
+}
 
 PyMethodDef method_table[] = {
     {"init", (PyCFunction) init, METH_VARARGS, "Method docstring"},
