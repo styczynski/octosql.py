@@ -65,16 +65,20 @@ static PyObject* create_native_source(PyObject *self, PyObject *args) {
     }
     Py_INCREF(recordFactory);
 
+    int new_source_id = 0;
     auto fun = [=](){
         NativeSourceRecord record;
 
         dbgm "Call custom record method";
-        std::string val = "ala";
-        PyObject* pyRecord = PyObject_CallFunction(recordFactory, "s", val.c_str());
+        //PyObject* pyRecord = PyObject_CallFunction(recordFactory, "s", val.c_str());
+        PyObject* pyRecord = PyObject_CallMethod(recordFactory, "_next_record_", "i", new_source_id);
         Py_XINCREF(pyRecord);
         dbgm "Call end -> " << ((int)(size_t)pyRecord);
 
-        if (PyDict_Check(pyRecord)) {
+        if (Py_None == pyRecord) {
+            // End of stream
+            return record;
+        } else if (PyDict_Check(pyRecord)) {
             PyObject *key, *value;
             Py_ssize_t pos = 0;
 
@@ -107,7 +111,8 @@ static PyObject* create_native_source(PyObject *self, PyObject *args) {
         empty_record,
     };
 
-    return PyLong_FromLong(octosql_register_native_source(new_source));
+    new_source_id = octosql_register_native_source(new_source);
+    return PyLong_FromLong(new_source_id);
 }
 
 static PyObject* new_instance(PyObject *self, PyObject *args) {

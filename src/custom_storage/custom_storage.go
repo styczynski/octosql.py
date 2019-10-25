@@ -9,9 +9,11 @@ import "C"
 import (
 	"context"
 	"github.com/cube2222/octosql"
+	"github.com/cube2222/octosql/config"
 	"github.com/cube2222/octosql/execution"
 	"github.com/cube2222/octosql/physical"
 	"github.com/cube2222/octosql/physical/metadata"
+	"github.com/pkg/errors"
 )
 
 type DataSource struct {
@@ -27,9 +29,14 @@ var availableFilters = map[physical.FieldType]map[physical.Relation]struct{}{
 func NewDataSourceBuilderFactory() physical.DataSourceBuilderFactory {
 	return physical.NewDataSourceBuilderFactory(
 		func(ctx context.Context, matCtx *physical.MaterializationContext, dbConfig map[string]interface{}, filter physical.Formula, alias string) (execution.Node, error) {
+			id, err := config.GetInt(dbConfig, "id")
+			if err != nil {
+				return nil, errors.Wrap(err, "couldn't get custom stoarge id")
+			}
+
 			return &DataSource{
 				alias:       alias,
-				nativeID:    0,
+				nativeID:    int32(id),
 			}, nil
 		},
 		nil,
@@ -89,6 +96,9 @@ func (rs *RecordStream) Next() (*execution.Record, error) {
 		}
 	}
 
-	rs.isDone = true
+	if fieldsCount == 0 {
+		rs.isDone = true
+		return nil, execution.ErrEndOfStream
+	}
 	return execution.NewRecord(fields, values), nil
 }
