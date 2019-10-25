@@ -1,5 +1,3 @@
-#ifdef CUSTOM_STORAGE_SUPPORTED
-
 #include "custom_storage.hpp"
 #include <iostream>
 
@@ -42,5 +40,3 @@ const char* octosql_native_source_get_record_field_name(NativeSourceID id, int f
     dgbm_stor "octosql_native_source_get_record_field_name";
     return nativeSources[id].recordBuf.fields[fieldID].name.c_str();
 }
-
-#endif

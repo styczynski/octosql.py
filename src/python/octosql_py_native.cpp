@@ -7,7 +7,7 @@
 #include "libgooctosql.h"
 #include "helper.h"
 #include "structmember.h"
-#include "../custom_storage/custom_storage.h"
+#include "../custom_storage/custom_storage.hpp"
 
 static PyTypeObject* RecordSetType_get();
 static PyTypeObject* RecordType_get();
