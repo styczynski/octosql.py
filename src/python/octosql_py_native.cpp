@@ -51,9 +51,11 @@ static PyObject* init(PyObject *self, PyObject *args) {
     dbgm "init: Init OctoSQL native interface";
     const int res = octosql_init();
     if (res != 0) {
+        dbgm "Init function errored"
         SET_GO_ERR(octosql_get_error());
         return NULL;
     }
+    dbgm "Init completed"
     Py_RETURN_NONE;
 }
 
