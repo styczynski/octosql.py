@@ -3,7 +3,7 @@ package custom_storage
 
 // #include "./custom_storage.h"
 // #cgo CFLAGS: -I.
-// #cgo LDFLAGS: -L. -lcustom_storage
+// #cgo LDFLAGS: -L. -lcustom_storage_octosql
 import "C"
 
 import (

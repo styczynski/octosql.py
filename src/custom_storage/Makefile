@@ -3,4 +3,4 @@ all: custom_storage.a
 
 custom_storage.a:
 	g++ -DCUSTOM_STORAGE_SUPPORTED -c custom_storage.cpp -std=c++11
-	ar -rcs libcustom_storage.a custom_storage.o
+	ar -rcs libcustom_storage_octosql.a custom_storage.o
