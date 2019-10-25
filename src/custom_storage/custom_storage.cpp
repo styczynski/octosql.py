@@ -1,3 +1,6 @@
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
+#define CUSTOM_STORAGE_SUPPORTED 1
+
 #include "custom_storage.hpp"
 #include <iostream>
 
@@ -40,3 +43,7 @@ const char* octosql_native_source_get_record_field_name(NativeSourceID id, int f
     dgbm_stor "octosql_native_source_get_record_field_name";
     return nativeSources[id].recordBuf.fields[fieldID].name.c_str();
 }
+
+#else
+#define CUSTOM_STORAGE_SUPPORTED 0
+#endif
