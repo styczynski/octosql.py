@@ -13,7 +13,7 @@ NativeSourceID octosql_register_native_source(NativeSource source) {
 
 void octosql_native_source_read_next_record(NativeSourceID id) {
     dgbm_stor "octosql_native_source_read_next_record";
-    nativeSources[id].recordBuf = nativeSources[id].readNextRecord();
+    nativeSources[id].recordBuf = nativeSources[id].readNextRecordIndirect(nativeSources[id].readNextRecord);
 }
 
 int octosql_native_source_get_record_fields_count(NativeSourceID id) {

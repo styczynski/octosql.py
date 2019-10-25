@@ -15,7 +15,9 @@ typedef struct {
 } NativeSourceRecord;
 
 typedef struct {
-    std::function<NativeSourceRecord()> readNextRecord;
+    //std::function<NativeSourceRecord()>
+    void* readNextRecord;
+    NativeSourceRecord (*readNextRecordIndirect)(void*);
     NativeSourceRecord recordBuf;
 } NativeSource;
 

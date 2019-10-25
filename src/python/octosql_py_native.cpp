@@ -3,6 +3,7 @@
 
 #include <Python.h>
 #include <iostream>
+#include <functional>
 #include "debug.h"
 #include "libgooctosql.h"
 #include "helper.h"
@@ -56,6 +57,10 @@ static PyObject* init(PyObject *self, PyObject *args) {
     Py_RETURN_NONE;
 }
 
+NativeSourceRecord octosql_register_native_source_indirect_impl(void* ptr) {
+    return (*((std::function<NativeSourceRecord()>*)ptr))();
+}
+
 static PyObject* create_native_source(PyObject *self, PyObject *args) {
 
     dbgm "Deserialize factory";
@@ -66,7 +71,7 @@ static PyObject* create_native_source(PyObject *self, PyObject *args) {
     Py_INCREF(recordFactory);
 
     int new_source_id = 0;
-    auto fun = [=](){
+    std::function<NativeSourceRecord()> fun = [=](){
         NativeSourceRecord record;
 
         dbgm "Call custom record method";
@@ -105,9 +110,13 @@ static PyObject* create_native_source(PyObject *self, PyObject *args) {
         return record;
     };
 
+    std::function<NativeSourceRecord()>* fun_addr = (std::function<NativeSourceRecord()>*) malloc(sizeof(fun));
+    *fun_addr = fun;
+
     NativeSourceRecord empty_record;
     NativeSource new_source = {
-        fun,
+        (void*) fun_addr,
+        octosql_register_native_source_indirect_impl,
         empty_record,
     };
 
