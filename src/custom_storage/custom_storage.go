@@ -14,6 +14,7 @@ import (
 	"github.com/cube2222/octosql/physical"
 	"github.com/cube2222/octosql/physical/metadata"
 	"github.com/pkg/errors"
+	"strconv"
 )
 
 type DataSource struct {
@@ -29,14 +30,26 @@ var availableFilters = map[physical.FieldType]map[physical.Relation]struct{}{
 func NewDataSourceBuilderFactory() physical.DataSourceBuilderFactory {
 	return physical.NewDataSourceBuilderFactory(
 		func(ctx context.Context, matCtx *physical.MaterializationContext, dbConfig map[string]interface{}, filter physical.Formula, alias string) (execution.Node, error) {
-			id, err := config.GetInt(dbConfig, "id")
+			var id int32
+			strID, err := config.GetString(dbConfig, "id")
 			if err != nil {
-				return nil, errors.Wrap(err, "couldn't get custom stoarge id")
+				newID, retryErr := config.GetInt(dbConfig, "id")
+				if retryErr != nil {
+					return nil, errors.Wrap(err, "couldn't get custom stoarge id")
+				} else {
+					id = int32(newID)
+				}
 			}
+
+			newID, err := strconv.Atoi(strID)
+			if err != nil {
+				return nil, errors.Wrap(err, "couldn't get custom stoarge id - not a number")
+			}
+			id = int32(newID)
 
 			return &DataSource{
 				alias:       alias,
-				nativeID:    int32(id),
+				nativeID:    id,
 			}, nil
 		},
 		nil,
