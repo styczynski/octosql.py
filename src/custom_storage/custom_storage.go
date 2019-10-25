@@ -39,13 +39,13 @@ func NewDataSourceBuilderFactory() physical.DataSourceBuilderFactory {
 				} else {
 					id = int32(newID)
 				}
+			} else {
+				newID, err := strconv.Atoi(strID)
+				if err != nil {
+					return nil, errors.Wrap(err, "couldn't get custom stoarge id - not a number")
+				}
+				id = int32(newID)
 			}
-
-			newID, err := strconv.Atoi(strID)
-			if err != nil {
-				return nil, errors.Wrap(err, "couldn't get custom stoarge id - not a number")
-			}
-			id = int32(newID)
 
 			return &DataSource{
 				alias:       alias,
