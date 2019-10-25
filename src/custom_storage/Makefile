@@ -2,5 +2,5 @@ all: custom_storage.a
 	echo "OK"
 
 custom_storage.a:
-	g++ -c custom_storage.cpp -std=c++11
+	g++ -DCUSTOM_STORAGE_SUPPORTED -c custom_storage.cpp -std=c++11
 	ar -rcs libcustom_storage.a custom_storage.o
