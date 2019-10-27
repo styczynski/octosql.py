@@ -123,7 +123,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/styczynski/octosql_py',
-    version='0.2.0',
+    version='0.3.0',
     zip_safe=False,
     ext_modules = [Extension("octosql_py_native", ["./src/python/octosql_py_native.cpp"], extra_compile_args=['-std=c++11'], extra_link_args=native_link_flags)]
 )
