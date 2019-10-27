@@ -118,6 +118,7 @@ setup(
     include_package_data=True,
     keywords='octosql_py',
     name='octosql_py',
+    py_modules=['octosql_py', 'octosql_py_native'],
     packages=find_packages(include=['octosql_py', 'octosql_py.*', 'octosql_py_native', 'octosql_py_native.*']),
     setup_requires=setup_requirements,
     test_suite='tests',
