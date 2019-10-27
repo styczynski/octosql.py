@@ -71,21 +71,29 @@ func octosql_get_error() (string) {
 //export octosql_init
 func octosql_init() (int32) {
 
+	println("octosql_init()")
 	if wasInited {
+		print("wasInited oops!")
 		lastError = "Octosql was already initialized"
 		return 1
 	}
+	println("ok pass")
 
 	appInstances = &map[int32]*AppInstance{}
 	appInstancesFI = 0
 
+	println("A")
 	appParseObjs = &map[int32]*ParseInstance{}
 	appParseObjsFI = 0
 
+	println("B")
 	appResultBuffers = &map[int32]*helpers.OctoSQLOutputBuffer{}
 	appResultBuffersFI = 0
 
+	println("C")
 	wasInited = true
+
+	println("Exit")
 	return 0
 }
 

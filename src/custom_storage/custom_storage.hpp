@@ -16,8 +16,8 @@ typedef struct {
 
 typedef struct {
     //std::function<NativeSourceRecord()>
-    void* readNextRecord;
-    NativeSourceRecord (*readNextRecordIndirect)(void*);
+    int readNextRecord;
+    NativeSourceRecord (*readNextRecordIndirect)(int);
     NativeSourceRecord recordBuf;
 } NativeSource;
 

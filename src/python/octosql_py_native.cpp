@@ -59,8 +59,11 @@ static PyObject* init(PyObject *self, PyObject *args) {
     Py_RETURN_NONE;
 }
 
-NativeSourceRecord octosql_register_native_source_indirect_impl(void* ptr) {
-    return (*((std::function<NativeSourceRecord()>*)ptr))();
+static std::vector<std::function<NativeSourceRecord()>> source_handlers;
+static int source_handler_free_id = 0;
+
+NativeSourceRecord octosql_register_native_source_indirect_impl(int ptr) {
+    return source_handlers[ptr]();
 }
 
 static PyObject* create_native_source(PyObject *self, PyObject *args) {
@@ -70,6 +73,7 @@ static PyObject* create_native_source(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "O", &recordFactory)) {
         return NULL;
     }
+    Py_INCREF(args);
     Py_INCREF(recordFactory);
 
     int new_source_id = 0;
@@ -79,11 +83,13 @@ static PyObject* create_native_source(PyObject *self, PyObject *args) {
         dbgm "Call custom record method";
         //PyObject* pyRecord = PyObject_CallFunction(recordFactory, "s", val.c_str());
         PyObject* pyRecord = PyObject_CallMethod(recordFactory, "_next_record_", "i", new_source_id);
-        Py_XINCREF(pyRecord);
+        //Py_XINCREF(pyRecord);
         dbgm "Call end -> " << ((int)(size_t)pyRecord);
 
         if (Py_None == pyRecord) {
             // End of stream
+            Py_XDECREF(recordFactory);
+            Py_XDECREF(args);
             return record;
         } else if (PyDict_Check(pyRecord)) {
             PyObject *key, *value;
@@ -108,16 +114,17 @@ static PyObject* create_native_source(PyObject *self, PyObject *args) {
             }
         }
 
+        Py_XDECREF(pyRecord);
         dbgm "Return record";
         return record;
     };
 
-    std::function<NativeSourceRecord()>* fun_addr = (std::function<NativeSourceRecord()>*) malloc(sizeof(fun));
-    *fun_addr = fun;
+    source_handlers.push_back(fun);
+    const int fun_id = source_handler_free_id++;
 
     NativeSourceRecord empty_record;
     NativeSource new_source = {
-        (void*) fun_addr,
+        fun_id,
         octosql_register_native_source_indirect_impl,
         empty_record,
     };
@@ -280,7 +287,7 @@ static PyObject* create_new_parse(PyObject *self, PyObject *args) {
 }
 
 static PyObject* parse(PyObject *self, PyObject *args) {
-    int appID, parseID;
+    long int appID, parseID;
     char* input;
 
     if (!PyArg_ParseTuple(args, "lls", &appID, &parseID, &input)) {
@@ -294,7 +301,7 @@ static PyObject* parse(PyObject *self, PyObject *args) {
 }
 
 static PyObject* plan(PyObject *self, PyObject *args) {
-    int appID, parseID;
+    long int appID, parseID;
 
     if (!PyArg_ParseTuple(args, "ll", &appID, &parseID)) {
         return NULL;
@@ -398,7 +405,7 @@ static PyObject* get_query_results_obj(int appID, int parseID) {
 }
 
 static PyObject* run(PyObject *self, PyObject *args) {
-    int appID, parseID;
+    long int appID, parseID;
     dbgm "run() - started";
     
 
