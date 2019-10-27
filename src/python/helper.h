@@ -1,3 +1,5 @@
+#include <string>
+
 #define SET_GO_ERR(VAL) if (true) { \
         char ___goErrBuf___ [500]; \
         const GoString ___goErrStr___ = ( VAL ); \
@@ -32,6 +34,12 @@ static const char* PyStringLike_AsStringAndSize(PyObject* o, Py_ssize_t* size) {
 
     *size = 0;
     return NULL;
+}
+
+
+static std::string PyStringLike_AsCppString(PyObject* o) {
+    Py_ssize_t size;
+    return std::string(PyStringLike_AsStringAndSize(o, &size));
 }
 
 static PyObject* PyStringLike_FromString(const char* input) {

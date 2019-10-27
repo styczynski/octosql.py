@@ -3,10 +3,12 @@
 
 #include <Python.h>
 #include <iostream>
+#include <functional>
 #include "debug.h"
 #include "libgooctosql.h"
 #include "helper.h"
 #include "structmember.h"
+#include "../custom_storage/custom_storage.hpp"
 
 static PyTypeObject* RecordSetType_get();
 static PyTypeObject* RecordType_get();
@@ -49,10 +51,86 @@ static PyObject* init(PyObject *self, PyObject *args) {
     dbgm "init: Init OctoSQL native interface";
     const int res = octosql_init();
     if (res != 0) {
+        dbgm "Init function errored";
         SET_GO_ERR(octosql_get_error());
         return NULL;
     }
+    dbgm "Init completed";
     Py_RETURN_NONE;
+}
+
+static std::vector<std::function<NativeSourceRecord()>> source_handlers;
+static int source_handler_free_id = 0;
+
+NativeSourceRecord octosql_register_native_source_indirect_impl(int ptr) {
+    return source_handlers[ptr]();
+}
+
+static PyObject* create_native_source(PyObject *self, PyObject *args) {
+
+    dbgm "Deserialize factory";
+    PyObject* recordFactory;
+    if (!PyArg_ParseTuple(args, "O", &recordFactory)) {
+        return NULL;
+    }
+    Py_INCREF(args);
+    Py_INCREF(recordFactory);
+
+    int new_source_id = 0;
+    std::function<NativeSourceRecord()> fun = [=](){
+        NativeSourceRecord record;
+
+        dbgm "Call custom record method";
+        //PyObject* pyRecord = PyObject_CallFunction(recordFactory, "s", val.c_str());
+        PyObject* pyRecord = PyObject_CallMethod(recordFactory, "_next_record_", "i", new_source_id);
+        //Py_XINCREF(pyRecord);
+        dbgm "Call end -> " << ((int)(size_t)pyRecord);
+
+        if (Py_None == pyRecord) {
+            // End of stream
+            Py_XDECREF(recordFactory);
+            Py_XDECREF(args);
+            return record;
+        } else if (PyDict_Check(pyRecord)) {
+            PyObject *key, *value;
+            Py_ssize_t pos = 0;
+
+            while (PyDict_Next(pyRecord, &pos, &key, &value)) {
+                NativeSourceValue field;
+                field.name = PyStringLike_AsCppString(key);
+                field.value = 0;
+                field.type = 0;
+                if (PyLong_Check(value)) {
+                    field.value = (void*) PyLong_AsLong(value);
+                    field.type = 0;
+                    record.fields.push_back(field);
+                } else if (PyStringLike_Check(value)) {
+                    std::string* fstr = (std::string*) malloc(sizeof(std::string));
+                    *fstr = PyStringLike_AsCppString(value);
+                    field.value = fstr;
+                    field.type = 3;
+                    record.fields.push_back(field);
+                }
+            }
+        }
+
+        Py_XDECREF(pyRecord);
+        dbgm "Return record";
+        return record;
+    };
+
+    source_handlers.push_back(fun);
+    const int fun_id = source_handler_free_id++;
+
+    NativeSourceRecord empty_record;
+    NativeSource new_source = {
+        fun_id,
+        octosql_register_native_source_indirect_impl,
+        empty_record,
+    };
+
+    new_source_id = octosql_register_native_source(new_source);
+    return PyLong_FromLong(new_source_id);
 }
 
 static PyObject* new_instance(PyObject *self, PyObject *args) {
@@ -209,7 +287,7 @@ static PyObject* create_new_parse(PyObject *self, PyObject *args) {
 }
 
 static PyObject* parse(PyObject *self, PyObject *args) {
-    int appID, parseID;
+    long int appID, parseID;
     char* input;
 
     if (!PyArg_ParseTuple(args, "lls", &appID, &parseID, &input)) {
@@ -223,7 +301,7 @@ static PyObject* parse(PyObject *self, PyObject *args) {
 }
 
 static PyObject* plan(PyObject *self, PyObject *args) {
-    int appID, parseID;
+    long int appID, parseID;
 
     if (!PyArg_ParseTuple(args, "ll", &appID, &parseID)) {
         return NULL;
@@ -327,7 +405,7 @@ static PyObject* get_query_results_obj(int appID, int parseID) {
 }
 
 static PyObject* run(PyObject *self, PyObject *args) {
-    int appID, parseID;
+    long int appID, parseID;
     dbgm "run() - started";
     
 
@@ -486,6 +564,7 @@ PyMethodDef method_table[] = {
     {"parse", (PyCFunction) parse, METH_VARARGS, "Method docstring"},
     {"plan", (PyCFunction) plan, METH_VARARGS, "Method docstring"},
     {"run", (PyCFunction) run, METH_VARARGS, "Method docstring"},
+    {"create_native_source", (PyCFunction) create_native_source, METH_VARARGS, "Method docstring"},
     {NULL, NULL, 0, NULL} // Sentinel value ending the table
 };
 

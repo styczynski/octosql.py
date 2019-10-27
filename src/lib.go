@@ -5,6 +5,7 @@ import (
 	"github.com/cube2222/octosql/logical"
 	"github.com/cube2222/octosql/storage/excel"
 	"github.com/pkg/errors"
+	"github.com/styczynski/octosql.py/src/custom_storage"
 	"github.com/styczynski/octosql.py/src/helpers"
 	"gopkg.in/yaml.v2"
 	"log"
@@ -70,21 +71,29 @@ func octosql_get_error() (string) {
 //export octosql_init
 func octosql_init() (int32) {
 
+	println("octosql_init()")
 	if wasInited {
+		print("wasInited oops!")
 		lastError = "Octosql was already initialized"
 		return 1
 	}
+	println("ok pass")
 
 	appInstances = &map[int32]*AppInstance{}
 	appInstancesFI = 0
 
+	println("A")
 	appParseObjs = &map[int32]*ParseInstance{}
 	appParseObjsFI = 0
 
+	println("B")
 	appResultBuffers = &map[int32]*helpers.OctoSQLOutputBuffer{}
 	appResultBuffersFI = 0
 
+	println("C")
 	wasInited = true
+
+	println("Exit")
 	return 0
 }
 
@@ -100,6 +109,7 @@ func octosql_new_instance(yamlConfiguration string) (int32) {
 
 	inst.sources, err = physical.CreateDataSourceRepositoryFromConfig(
 		map[string]physical.Factory{
+			"custom":   custom_storage.NewDataSourceBuilderFactoryFromConfig,
 			"csv":      csv.NewDataSourceBuilderFactoryFromConfig,
 			"json":     json.NewDataSourceBuilderFactoryFromConfig,
 			"mysql":    mysql.NewDataSourceBuilderFactoryFromConfig,

@@ -12,3 +12,5 @@ __pycache__/**/
 build/
 .tox/
 *.pyc
+src/custom_storage/*.o
+src/custom_storage/*.a
