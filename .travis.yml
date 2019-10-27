@@ -6,13 +6,21 @@ python:
 - 2.7
 install: pip install -U tox-travis
 script: tox
+
+services:
+  - docker
+
 deploy:
-  provider: pypi
-  distributions: sdist bdist_wheel
-  user: styczynski
-  password:
-    secure: tpteF2xJrOYNbmN6XUHVWrdXlafO7SxRyHkeDjJNg+rFjAcjV5VdwKTqw9gZ/ckQxBNRubUoY5AgKBbqpEZrKrqewXjTQmb1ZyFqsubqsAy7ErzHKsmhnPWtq8/5aw8YQp72Eobb4sSIcQwHUYykZwyW7mQDqOTBDrjjkrJFiBefHwmhinHXfdPeZbrp/IidsPPWr09uJcLa9W8J12tp5A0RYyJ+2eY8FZkxmDG40Jt6JezYaAj5qxUySapG6ubhfruppL+8MXA+R6BHbKxM0p88KDKLtnoF2j70wvHK3B7Hc+OMC/ALrsJPy2cAn4S+OiEvoajbguajmLp640zrcha2aSR/UiNseQe1kiwKPxByLV+NFLNInPT/tHqiXRSFCBCwcMzPPdzOVZUGuvvl30CFXC33+SeUxIIQPEzTeAtuWJ95VVTSJ90kJbD+Ym9HRYNyURX5fEimojrXBk+u0awRIvestu+80N9zPdwcO+6RqUYaGB8GwjarnNRFEtURUfDwlSrbBrKePV57EE/k/oyRL3QBjagK6CTmDK0WHQHlSjQWr0YSxf0loNKjO/6ufoYpGGPwgcb4ERLBOrScmhk4/X0jdGdxcf7UdKm6zrfXHzE30hkBVzrraPoSLfo29q2XxSYYo4+DUYNR9lfrdBAMlJYpghu20U4CaWarpOA=
-  on:
-    tags: true
-    repo: styczynski/octosql.py
-    python: 3.7
+  - provider: script
+    script: make docker
+    on:
+      branch: master
+  - provider: pypi
+    distributions: sdist bdist_wheel
+    user: styczynski
+    password:
+      secure: tpteF2xJrOYNbmN6XUHVWrdXlafO7SxRyHkeDjJNg+rFjAcjV5VdwKTqw9gZ/ckQxBNRubUoY5AgKBbqpEZrKrqewXjTQmb1ZyFqsubqsAy7ErzHKsmhnPWtq8/5aw8YQp72Eobb4sSIcQwHUYykZwyW7mQDqOTBDrjjkrJFiBefHwmhinHXfdPeZbrp/IidsPPWr09uJcLa9W8J12tp5A0RYyJ+2eY8FZkxmDG40Jt6JezYaAj5qxUySapG6ubhfruppL+8MXA+R6BHbKxM0p88KDKLtnoF2j70wvHK3B7Hc+OMC/ALrsJPy2cAn4S+OiEvoajbguajmLp640zrcha2aSR/UiNseQe1kiwKPxByLV+NFLNInPT/tHqiXRSFCBCwcMzPPdzOVZUGuvvl30CFXC33+SeUxIIQPEzTeAtuWJ95VVTSJ90kJbD+Ym9HRYNyURX5fEimojrXBk+u0awRIvestu+80N9zPdwcO+6RqUYaGB8GwjarnNRFEtURUfDwlSrbBrKePV57EE/k/oyRL3QBjagK6CTmDK0WHQHlSjQWr0YSxf0loNKjO/6ufoYpGGPwgcb4ERLBOrScmhk4/X0jdGdxcf7UdKm6zrfXHzE30hkBVzrraPoSLfo29q2XxSYYo4+DUYNR9lfrdBAMlJYpghu20U4CaWarpOA=
+    on:
+      tags: true
+      repo: styczynski/octosql.py
+      python: 3.7
