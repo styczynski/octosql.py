@@ -14,8 +14,8 @@ octosql-py
         :alt: Documentation Status
 
 
-.. image:: https://pyup.io/repos/github/styczynski/octosql_py/shield.svg
-     :target: https://pyup.io/repos/github/styczynski/octosql_py/
+.. image:: https://pyup.io/repos/github/styczynski/octosql.py/shield.svg
+     :target: https://pyup.io/repos/github/styczynski/octosql.py/
      :alt: Updates
 
 
