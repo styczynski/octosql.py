@@ -11,10 +11,6 @@ services:
   - docker
 
 deploy:
-  - provider: script
-    script: make docker
-    on:
-      branch: master
   - provider: pypi
     distributions: sdist bdist_wheel
     user: styczynski
