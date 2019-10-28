@@ -13,7 +13,7 @@ octosql-py
         :target: https://octosqlpy.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-.. image:: https://img.shields.io/docker/build/styczynski/octosql-py
+.. image:: https://img.shields.io/docker/cloud/build/styczynski/octosql-py
         :target: https://hub.docker.com/r/styczynski/octosql-py
         :alt: Docker status
 
