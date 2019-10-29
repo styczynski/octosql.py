@@ -1,10 +1,14 @@
+#ifndef OCTSQLN_PY_HELPER
+#define OCTSQLN_PY_HELPER
+
 #include <string>
+#include "core.h"
 
 #define SET_GO_ERR(VAL) if (true) { \
-        char ___goErrBuf___ [500]; \
-        const GoString ___goErrStr___ = ( VAL ); \
-        PyErr_SetString(PyExc_Exception, strncpy(___goErrBuf___, ___goErrStr___.p, ___goErrStr___.n)); \
-    }
+    char ___goErrBuf___ [500]; \
+    const GoString ___goErrStr___ = ( VAL ); \
+    PyErr_SetString(PyExc_Exception, strncpy(___goErrBuf___, ___goErrStr___.p, ___goErrStr___.n)); \
+}
 
 GoString strToGo(char* str) {
     GoString goStr = {
@@ -57,3 +61,5 @@ static bool PyStringLike_Check(PyObject* o) {
         return PyUnicode_Check(o) || PyString_Check(o);
     #endif
 }
+
+#endif // OCTSQLN_PY_HELPER

@@ -1,3 +1,6 @@
+#ifndef OCTSQLN_C_CUSTOM_STORAGE
+#define OCTSQLN_C_CUSTOM_STORAGE
+
 #include <map>
 #include <string>
 #include <vector>
@@ -24,3 +27,5 @@ typedef struct {
 typedef int NativeSourceID;
 
 NativeSourceID octosql_register_native_source(NativeSource source);
+
+#endif // OCTSQLN_C_CUSTOM_STORAGE

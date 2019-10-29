@@ -7,7 +7,7 @@ octo = octosql_py.OctoSQL()
 
 conn = octo.connect([
     OctoSQLSourceStatic("lol", [
-        { "a":99 }
+        { "a": 99 }
     ]),
     OctoSQLSourceJSON("lol2", "./tests/samples/bikes.json"),
 ])

@@ -1,3 +1,6 @@
+#ifndef OCTSQLN_C_CUSTOM_STORAGE_H
+#define OCTSQLN_C_CUSTOM_STORAGE_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,3 +23,5 @@ int octosql_native_source_get_record_field_as_int(NativeSourceID id, int fieldID
 #ifdef __cplusplus
 }
 #endif
+
+#endif // OCTSQLN_C_CUSTOM_STORAGE_H
